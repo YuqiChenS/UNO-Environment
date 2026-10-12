@@ -36,8 +36,8 @@ class UnoHumanAgent:
 
 
 def print_action(player_id, action):
-    ''' Print one player's move, e.g. ">> Player 1 plays r-7" '''
-    print('>> Player {} plays '.format(player_id), end='')
+    ''' Print one player's move, e.g. ">> Player 1 chooses r-7" '''
+    print('>> Player {} chooses '.format(player_id), end='')
     UnoCard.print_cards(action, wild_color=True)
     print()
 
@@ -50,6 +50,10 @@ def print_state(state):
     print('=============== Last Card ===============')
     UnoCard.print_cards(state['target'], wild_color=True)
     print()
+    if state['drawn_card'] is not None:
+        print('You drew ', end='')
+        UnoCard.print_cards(state['drawn_card'])
+        print(': play it or keep it?')
     print('========== Players Card Number ===========')
     for player_id in range(state['num_players']):
         if player_id != state['current_player']:

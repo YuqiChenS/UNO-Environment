@@ -29,11 +29,11 @@ def total_cards(game):
 
 
 def choose_action(state, pick):
-    ''' A random card if any can be played, otherwise draw. Drawing whenever it is offered
-    can make games run forever, which would test the player instead of the game.
+    ''' A random card if any can be played, otherwise draw (or keep a drawn card). Drawing whenever
+    it is offered can make games run forever, which would test the player instead of the game.
     '''
-    cards = [action for action in state['legal_actions'] if action != 'draw']
-    return pick.choice(cards) if cards else 'draw'
+    cards = [action for action in state['legal_actions'] if action not in ('draw', 'keep')]
+    return pick.choice(cards) if cards else state['legal_actions'][-1]
 
 
 def play_random_game(game, seed):
@@ -50,12 +50,17 @@ def play_random_game(game, seed):
     raise AssertionError('game did not finish in {} steps'.format(MAX_STEPS))
 
 
-def game_with_hand(hand, target):
-    ''' A started game where the current player holds exactly `hand` and must match `target` '''
-    game = new_game(0)
+def game_with_hand(hand, target, next_draw=None, num_players=2):
+    ''' A started game where the current player holds exactly `hand` and must match `target`.
+    `next_draw` is put on top of the deck so it is the next card drawn.
+    '''
+    game = new_game(0, num_players)
     game.init_game()
     game.players[game.round.current_player].hand = hand
     game.round.target = target
+    game.round.played_cards = [target]
+    if next_draw is not None:
+        game.dealer.deck.append(next_draw)  # the deck deals from the end
     return game
 
 
@@ -149,13 +154,115 @@ class TestDrawRule(unittest.TestCase):
         self.assertCountEqual(game.get_legal_actions(), ['r-5', 'draw'])
 
     def test_drawing_an_unplayable_card_keeps_it_and_passes_the_turn(self):
-        game = game_with_hand([number('r', '5')], target=number('r', '3'))
-        player_id = game.round.current_player
         drawn = number('b', '9')
-        game.dealer.deck.append(drawn)  # the deck deals from the end
+        game = game_with_hand([number('r', '5')], target=number('r', '3'), next_draw=drawn)
+        player_id = game.round.current_player
         game.step('draw')
         self.assertIn(drawn, game.players[player_id].hand)
         self.assertNotEqual(game.round.current_player, player_id)
+
+
+class TestPlayOrKeepDrawnCard(unittest.TestCase):
+    ''' After drawing a playable card, the same player chooses to play it or keep it. '''
+
+    def test_playable_drawn_card_asks_play_or_keep(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'), next_draw=number('r', '7'))
+        player_id = game.round.current_player
+        state, next_player = game.step('draw')
+        self.assertEqual(next_player, player_id)
+        self.assertEqual(state['drawn_card'], 'r-7')
+        self.assertCountEqual(state['legal_actions'], ['r-7', 'keep'])
+
+    def test_keep_leaves_card_in_hand_and_passes_turn(self):
+        drawn = number('r', '7')
+        game = game_with_hand([number('b', '5')], target=number('r', '3'), next_draw=drawn)
+        player_id = game.round.current_player
+        game.step('draw')
+        state, next_player = game.step('keep')
+        self.assertIn(drawn, game.players[player_id].hand)
+        self.assertNotEqual(next_player, player_id)
+        self.assertIsNone(game.round.drawn_card)
+        self.assertIn('draw', state['legal_actions'])
+
+    def test_play_drawn_card(self):
+        drawn = number('r', '7')
+        game = game_with_hand([number('b', '5')], target=number('r', '3'), next_draw=drawn)
+        player_id = game.round.current_player
+        game.step('draw')
+        _, next_player = game.step('r-7')
+        self.assertIs(game.round.target, drawn)
+        self.assertNotIn(drawn, game.players[player_id].hand)
+        self.assertNotEqual(next_player, player_id)
+
+    def test_drawn_skip_skips_next_player(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'),
+                              next_draw=UnoCard('action', 'r', 'skip'), num_players=3)
+        player_id = game.round.current_player
+        direction = game.round.direction
+        game.step('draw')
+        _, next_player = game.step('r-skip')
+        self.assertEqual(next_player, (player_id + 2 * direction) % 3)
+
+    def test_drawn_wild_offers_every_color_and_keep(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'),
+                              next_draw=UnoCard('wild', 'r', 'wild'))
+        state, _ = game.step('draw')
+        self.assertCountEqual(state['legal_actions'], WILD + ['keep'])
+        game.step('g-wild')
+        self.assertEqual(game.round.target.color, 'g')
+
+    def test_drawn_wild_draw_4_not_playable_when_hand_has_a_match(self):
+        drawn = UnoCard('wild', 'r', 'wild_draw_4')
+        game = game_with_hand([number('r', '5')], target=number('r', '3'), next_draw=drawn)
+        player_id = game.round.current_player
+        _, next_player = game.step('draw')
+        self.assertIn(drawn, game.players[player_id].hand)
+        self.assertNotEqual(next_player, player_id)
+
+    def test_playing_drawn_card_as_last_card_wins(self):
+        game = game_with_hand([], target=number('r', '3'), next_draw=number('r', '7'))
+        player_id = game.round.current_player
+        game.step('draw')
+        game.step('r-7')
+        self.assertTrue(game.is_over())
+        self.assertEqual(game.round.winner, [player_id])
+
+    def test_other_actions_rejected_while_deciding(self):
+        game = game_with_hand([number('r', '5')], target=number('r', '3'), next_draw=number('r', '7'))
+        game.step('draw')
+        for action in ('draw', 'r-5'):
+            with self.assertRaises(ValueError):
+                game.step(action)
+
+
+class TestEmptyDeck(unittest.TestCase):
+
+    def test_reshuffle_keeps_target_on_table(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'))
+        target = game.round.target
+        old_cards = [number('g', '1'), number('g', '2')]
+        game.dealer.deck = []
+        game.round.played_cards = old_cards + [target]
+        game.step('draw')
+        self.assertEqual(game.round.played_cards, [target])
+        self.assertNotIn(target, game.dealer.deck)
+        self.assertTrue(all(card not in game.round.played_cards for card in old_cards))
+
+    def test_draw_with_no_cards_left_passes_turn(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'))
+        player_id = game.round.current_player
+        game.dealer.deck = []
+        _, next_player = game.step('draw')
+        self.assertEqual(len(game.players[player_id].hand), 1)
+        self.assertNotEqual(next_player, player_id)
+
+    def test_penalty_deals_only_the_cards_left(self):
+        game = game_with_hand([UnoCard('action', 'r', 'draw_2'), number('b', '5')], target=number('r', '3'))
+        victim = game.players[game.round._next_player()]
+        before = len(victim.hand)
+        game.dealer.deck = []
+        game.step('r-draw_2')  # only the old target can be reshuffled
+        self.assertEqual(len(victim.hand), before + 1)
 
 
 if __name__ == '__main__':
