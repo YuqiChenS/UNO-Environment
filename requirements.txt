@@ -1,0 +1,4 @@
+numpy
+termcolor
+# only for DQNAgent / NFSPAgent
+torch>=2.0

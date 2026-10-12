@@ -1,5 +1,5 @@
-from rlcard.games.uno.card import UnoCard
-from rlcard.games.uno.utils import cards2list, WILD, WILD_DRAW_4
+from .card import UnoCard
+from .utils import cards2list, WILD, WILD_DRAW_4
 
 WILD_TRAITS = ('wild', 'wild_draw_4')
 DRAW_PENALTY = {'draw_2': 2, 'wild_draw_4': 4}
@@ -62,6 +62,7 @@ class UnoRound:
         '''
         if action == 'draw':
             self._perform_draw_action(players)
+            
             return
 
         player = players[self.current_player]
@@ -92,11 +93,11 @@ class UnoRound:
             elif card.color == target.color or card.trait == target.trait:
                 legal_actions.append(card.str)
 
-        if legal_actions:
-            return legal_actions
-        if has_wild_draw_4:
-            return list(WILD_DRAW_4)
-        return ['draw']
+
+        if not legal_actions and has_wild_draw_4:
+            legal_actions = list(WILD_DRAW_4)
+        legal_actions.append('draw')
+        return legal_actions
 
     def get_state(self, players, player_id):
         ''' Get player's state
@@ -107,7 +108,7 @@ class UnoRound:
         '''
         return {
             'hand': cards2list(players[player_id].hand),
-            'target': self.target.str,
+            'target': self.target.get_str(),  # not .str: wild cards change color after creation
             'played_cards': cards2list(self.played_cards),
             'legal_actions': self.get_legal_actions(players, player_id),
             'num_cards': [len(player.hand) for player in players],

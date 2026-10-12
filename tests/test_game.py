@@ -1,0 +1,162 @@
+''' Tests for the UNO game.
+
+TestUnoGame plays full games; TestDrawRule builds exact hands to check the legal actions.
+
+Run from the repo root:  python -m unittest discover tests -v
+'''
+import random
+import unittest
+
+import numpy as np
+
+from uno import Game
+from uno.card import UnoCard
+from uno.utils import ACTION_LIST, WILD, WILD_DRAW_4
+
+DECK_SIZE = 108
+MAX_STEPS = 2000
+
+
+def new_game(seed, num_players=2, allow_step_back=False):
+    game = Game(allow_step_back=allow_step_back, num_players=num_players)
+    game.np_random = np.random.RandomState(seed)
+    return game
+
+
+def total_cards(game):
+    return (len(game.dealer.deck) + len(game.round.played_cards)
+            + sum(len(player.hand) for player in game.players))
+
+
+def choose_action(state, pick):
+    ''' A random card if any can be played, otherwise draw. Drawing whenever it is offered
+    can make games run forever, which would test the player instead of the game.
+    '''
+    cards = [action for action in state['legal_actions'] if action != 'draw']
+    return pick.choice(cards) if cards else 'draw'
+
+
+def play_random_game(game, seed):
+    ''' Play until the game ends, checking invariants after every step. Returns the number of steps. '''
+    pick = random.Random(seed)
+    state, player_id = game.init_game()
+    for step in range(MAX_STEPS):
+        assert total_cards(game) == DECK_SIZE
+        assert 0 <= player_id < game.num_players
+        assert state['legal_actions'] and set(state['legal_actions']) <= set(ACTION_LIST)
+        if game.is_over():
+            return step
+        state, player_id = game.step(choose_action(state, pick))
+    raise AssertionError('game did not finish in {} steps'.format(MAX_STEPS))
+
+
+def game_with_hand(hand, target):
+    ''' A started game where the current player holds exactly `hand` and must match `target` '''
+    game = new_game(0)
+    game.init_game()
+    game.players[game.round.current_player].hand = hand
+    game.round.target = target
+    return game
+
+
+def number(color, trait):
+    return UnoCard('number', color, trait)
+
+
+class TestUnoGame(unittest.TestCase):
+
+    def test_random_games_finish(self):
+        for seed in range(300):
+            num_players = 2 + seed % 3
+            with self.subTest(seed=seed, num_players=num_players):
+                game = new_game(seed, num_players)
+                play_random_game(game, seed)
+                winner = game.round.winner
+                self.assertEqual(len(winner), 1)
+                self.assertEqual(len(game.players[winner[0]].hand), 0)
+
+    def test_target_shows_chosen_wild_color(self):
+        for seed in range(50):
+            game = new_game(seed)
+            pick = random.Random(seed)
+            state, _ = game.init_game()
+            for _ in range(MAX_STEPS):
+                if game.is_over():
+                    break
+                self.assertEqual(state['target'].split('-')[0], game.round.target.color)
+                state, _ = game.step(choose_action(state, pick))
+
+    def test_two_player_payoffs(self):
+        game = new_game(0)
+        play_random_game(game, 0)
+        winner = game.round.winner[0]
+        payoffs = game.get_payoffs()
+        self.assertEqual(payoffs[winner], 1)
+        self.assertEqual(payoffs[1 - winner], -1)
+
+    def test_same_seed_same_game(self):
+        def trace(seed):
+            game = new_game(seed, 3)
+            pick = random.Random(seed)
+            state, player_id = game.init_game()
+            states = [(player_id, state)]
+            for _ in range(MAX_STEPS):
+                if game.is_over():
+                    break
+                state, player_id = game.step(choose_action(state, pick))
+                states.append((player_id, state))
+            return states
+        self.assertEqual(trace(7), trace(7))
+
+    def test_step_back_restores_state(self):
+        game = new_game(1, allow_step_back=True)
+        pick = random.Random(1)
+        state, player_id = game.init_game()
+        for _ in range(20):
+            if game.is_over():
+                break
+            before = game.get_state(player_id)
+            game.step(choose_action(state, pick))
+            self.assertTrue(game.step_back())
+            self.assertEqual(game.get_state(player_id), before)
+            state, player_id = game.step(choose_action(state, pick))
+        self.assertTrue(game.step_back())
+
+
+class TestDrawRule(unittest.TestCase):
+    ''' Draw is always a legal action. Order of the legal actions is not checked. '''
+
+    def test_draw_offered_with_playable_card(self):
+        game = game_with_hand([number('r', '5')], target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), ['r-5', 'draw'])
+
+    def test_only_draw_when_nothing_playable(self):
+        game = game_with_hand([number('b', '5')], target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), ['draw'])
+
+    def test_draw_offered_with_wild(self):
+        game = game_with_hand([UnoCard('wild', 'r', 'wild')], target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), WILD + ['draw'])
+
+    def test_wild_draw_4_when_nothing_else_playable(self):
+        game = game_with_hand([number('b', '5'), UnoCard('wild', 'r', 'wild_draw_4')],
+                              target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), WILD_DRAW_4 + ['draw'])
+
+    def test_no_wild_draw_4_when_another_card_is_playable(self):
+        game = game_with_hand([number('r', '5'), UnoCard('wild', 'r', 'wild_draw_4')],
+                              target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), ['r-5', 'draw'])
+
+    def test_drawing_an_unplayable_card_keeps_it_and_passes_the_turn(self):
+        game = game_with_hand([number('r', '5')], target=number('r', '3'))
+        player_id = game.round.current_player
+        drawn = number('b', '9')
+        game.dealer.deck.append(drawn)  # the deck deals from the end
+        game.step('draw')
+        self.assertIn(drawn, game.players[player_id].hand)
+        self.assertNotEqual(game.round.current_player, player_id)
+
+
+if __name__ == '__main__':
+    unittest.main()

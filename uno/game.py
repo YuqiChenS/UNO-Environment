@@ -1,9 +1,9 @@
 from copy import deepcopy
 import numpy as np
 
-from rlcard.games.uno import Dealer
-from rlcard.games.uno import Player
-from rlcard.games.uno import Round
+from . import Dealer
+from . import Player
+from . import Round
 
 
 class UnoGame:
