@@ -148,10 +148,20 @@ class TestDrawRule(unittest.TestCase):
                               target=number('r', '3'))
         self.assertCountEqual(game.get_legal_actions(), WILD_DRAW_4 + ['draw'])
 
-    def test_no_wild_draw_4_when_another_card_is_playable(self):
+    def test_no_wild_draw_4_when_hand_matches_target_color(self):
         game = game_with_hand([number('r', '5'), UnoCard('wild', 'r', 'wild_draw_4')],
                               target=number('r', '3'))
         self.assertCountEqual(game.get_legal_actions(), ['r-5', 'draw'])
+
+    def test_wild_draw_4_with_a_trait_match_of_another_color(self):
+        game = game_with_hand([number('b', '3'), UnoCard('wild', 'r', 'wild_draw_4')],
+                              target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), ['b-3'] + WILD_DRAW_4 + ['draw'])
+
+    def test_wild_draw_4_with_a_wild(self):
+        game = game_with_hand([UnoCard('wild', 'r', 'wild'), UnoCard('wild', 'r', 'wild_draw_4')],
+                              target=number('r', '3'))
+        self.assertCountEqual(game.get_legal_actions(), WILD + WILD_DRAW_4 + ['draw'])
 
     def test_drawing_an_unplayable_card_keeps_it_and_passes_the_turn(self):
         drawn = number('b', '9')
@@ -160,6 +170,24 @@ class TestDrawRule(unittest.TestCase):
         game.step('draw')
         self.assertIn(drawn, game.players[player_id].hand)
         self.assertNotEqual(game.round.current_player, player_id)
+
+
+class TestReverse(unittest.TestCase):
+
+    def test_two_player_reverse_acts_like_skip(self):
+        game = game_with_hand([UnoCard('action', 'r', 'reverse'), number('b', '5')], target=number('r', '3'))
+        player_id = game.round.current_player
+        _, next_player = game.step('r-reverse')
+        self.assertEqual(next_player, player_id)
+
+    def test_three_player_reverse_changes_direction(self):
+        game = game_with_hand([UnoCard('action', 'r', 'reverse'), number('b', '5')], target=number('r', '3'),
+                              num_players=3)
+        player_id = game.round.current_player
+        direction = game.round.direction
+        _, next_player = game.step('r-reverse')
+        self.assertEqual(game.round.direction, -direction)
+        self.assertEqual(next_player, (player_id - direction) % 3)
 
 
 class TestPlayOrKeepDrawnCard(unittest.TestCase):

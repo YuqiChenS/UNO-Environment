@@ -23,7 +23,7 @@ class UnoRound:
         self.played_cards = []
         self.is_over = False
         self.winner = None
-        self.drawn_card = None  # set while the current player decides to play or keep a drawn card
+        self.drawn_card = None
 
     def flip_top_card(self):
         ''' Flip the top card of the card pile
@@ -51,8 +51,8 @@ class UnoRound:
             self.direction = -1
             self._advance()
         elif top_card.trait == 'draw_2':
-            # player 0 draws 2 but still takes the first turn
             self.dealer.deal_cards(players[self.current_player], 2)
+            self._advance()
 
     def proceed_round(self, players, action):
         ''' Apply one action by the current player
@@ -100,7 +100,7 @@ class UnoRound:
         '''
         return {
             'hand': cards2list(players[player_id].hand),
-            'target': self.target.get_str(),  # not .str: wild cards change color after creation
+            'target': self.target.get_str(),
             'played_cards': cards2list(self.played_cards),
             'legal_actions': self.get_legal_actions(players, player_id),
             'num_cards': [len(player.hand) for player in players],
@@ -131,12 +131,13 @@ class UnoRound:
 
     def _playable_actions(self, hand):
         ''' Cards matching the target's color or trait, plus wilds.
-        Wild draw 4 is only playable when nothing else is.
+        Wild draw 4 is only playable when no card in hand matches the target's color.
         '''
         target = self.target
         actions = []
         has_wild = False
         has_wild_draw_4 = False
+        has_color_match = False
         for card in hand:
             if card.trait == 'wild_draw_4':
                 has_wild_draw_4 = True
@@ -146,9 +147,11 @@ class UnoRound:
                     actions.extend(WILD)
             elif card.color == target.color or card.trait == target.trait:
                 actions.append(card.str)
+                if card.color == target.color:
+                    has_color_match = True
 
-        if not actions and has_wild_draw_4:
-            return list(WILD_DRAW_4)
+        if has_wild_draw_4 and not has_color_match:
+            actions.extend(WILD_DRAW_4)
         return actions
 
     @staticmethod
@@ -173,7 +176,6 @@ class UnoRound:
         if not self.dealer.deck:
             self.replace_deck()
         if not self.dealer.deck:
-            # every other card is in someone's hand: the draw gets nothing
             self._advance()
             return
 
@@ -188,13 +190,14 @@ class UnoRound:
     def _perform_non_number_action(self, players, card):
         if card.trait == 'reverse':
             self.direction *= -1
+            if self.num_players == 2:
+                self._advance()
         elif card.trait == 'skip':
             self._advance()
         elif card.trait in DRAW_PENALTY:
             num = DRAW_PENALTY[card.trait]
             if len(self.dealer.deck) < num:
                 self.replace_deck()
-            # deals fewer if there aren't enough cards left
             self.dealer.deal_cards(players[self._next_player()], min(num, len(self.dealer.deck)))
-            self._advance()  # the player who drew loses their turn
+            self._advance()
         self._advance()
