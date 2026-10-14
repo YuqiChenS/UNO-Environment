@@ -14,6 +14,7 @@ class UnoHumanAgent:
 
     def __init__(self, num_actions):
         self.num_actions = num_actions
+        self.name = "Human Agent"
 
     @staticmethod
     def step(state):

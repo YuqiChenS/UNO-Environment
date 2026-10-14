@@ -1,4 +1,17 @@
+import random
+
 import numpy as np
+
+
+class UnoRandomAgent:
+    ''' Picks a random legal action. Works with uno.match. '''
+
+    def __init__(self, seed=None):
+        self.rng = random.Random(seed)
+        self.name = "Random Agent"
+
+    def step(self, state):
+        return self.rng.choice(state['legal_actions'])
 
 
 class RandomAgent(object):
@@ -13,6 +26,7 @@ class RandomAgent(object):
         '''
         self.use_raw = False
         self.num_actions = num_actions
+        self.name = "Random Agent"
 
     @staticmethod
     def step(state):
