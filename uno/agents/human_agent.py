@@ -49,8 +49,11 @@ def print_state(state):
     UnoCard.print_cards(state['hand'])
     print()
     print('=============== Last Card ===============')
-    UnoCard.print_cards(state['target'], wild_color=True)
-    print()
+    if state['choosing_start_color']:
+        print('Wild: the game starts with a wild. Choose its color.')
+    else:
+        UnoCard.print_cards(state['target'], wild_color=True)
+        print()
     if state['drawn_card'] is not None:
         print('You drew ', end='')
         UnoCard.print_cards(state['drawn_card'])

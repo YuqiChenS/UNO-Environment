@@ -1,4 +1,3 @@
-from .card import UnoCard
 from .utils import cards2list, WILD, WILD_DRAW_4
 
 WILD_TRAITS = ('wild', 'wild_draw_4')
@@ -24,6 +23,7 @@ class UnoRound:
         self.is_over = False
         self.winner = None
         self.drawn_card = None
+        self.choosing_start_color = False
 
     def flip_top_card(self):
         ''' Flip the top card of the card pile
@@ -33,7 +33,7 @@ class UnoRound:
         '''
         top = self.dealer.flip_top_card()
         if top.trait == 'wild':
-            top.color = self.np_random.choice(UnoCard.info['color'])
+            self.choosing_start_color = True
         self.target = top
         self.played_cards.append(top)
         return top
@@ -61,6 +61,13 @@ class UnoRound:
             players (list): list of UnoPlayer objects
             action (str): string of legal action
         '''
+        if self.choosing_start_color:
+            if action not in WILD:
+                raise ValueError('{} is not legal: choose a color for the starting wild'.format(action))
+            self.target.color = action.split('-')[0]
+            self.choosing_start_color = False
+            return
+
         if self.drawn_card is not None:
             if action not in self.get_legal_actions(players, self.current_player):
                 raise ValueError('{} is not legal: the drawn card must be played or kept'.format(action))
@@ -86,6 +93,8 @@ class UnoRound:
         ''' The playable cards in hand plus 'draw'. Right after drawing a playable card,
         only that card and 'keep' are legal.
         '''
+        if self.choosing_start_color and player_id == self.current_player:
+            return list(WILD)
         playable = self._playable_actions(players[player_id].hand)
         if self.drawn_card is not None and player_id == self.current_player:
             return self._actions_for_card(self.drawn_card, playable) + ['keep']
@@ -105,6 +114,7 @@ class UnoRound:
             'legal_actions': self.get_legal_actions(players, player_id),
             'num_cards': [len(player.hand) for player in players],
             'drawn_card': self.drawn_card.get_str() if self.drawn_card is not None else None,
+            'choosing_start_color': self.choosing_start_color,
         }
 
     def replace_deck(self):
