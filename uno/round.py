@@ -1,3 +1,4 @@
+from .judger import UnoJudger
 from .utils import cards2list, WILD, WILD_DRAW_4
 
 WILD_TRAITS = ('wild', 'wild_draw_4')
@@ -61,7 +62,7 @@ class UnoRound:
             players (list): list of UnoPlayer objects
             action (str): string of legal action
         '''
-        if self.choosing_start_color:
+        if self.choosing_start_color: #choosing the starting color if top card is wild
             if action not in WILD:
                 raise ValueError('{} is not legal: choose a color for the starting wild'.format(action))
             self.target.color = action.split('-')[0]
@@ -72,14 +73,14 @@ class UnoRound:
             if action not in self.get_legal_actions(players, self.current_player):
                 raise ValueError('{} is not legal: the drawn card must be played or kept'.format(action))
             self.drawn_card = None
-            if action == 'keep':
+            if action == 'keep': #drawn card, player chose 'keep'
                 self._advance()
                 return
-        elif action == 'draw':
+        elif action == 'draw': #player chose 'draw'
             self._perform_draw_action(players)
             return
 
-        player = players[self.current_player]
+        player = players[self.current_player] # rest 
         color, trait = action.split('-')
         card = player.hand.pop(self._find_card(player.hand, color, trait))
         if trait in WILD_TRAITS:
@@ -181,12 +182,13 @@ class UnoRound:
 
     def _perform_draw_action(self, players):
         ''' Draw one card into the hand. If it is playable, the same player then decides to play
-        or keep it (drawn_card is set and the turn doesn't pass). Otherwise the turn passes.
+        or keep it. Otherwise the turn passes.
         '''
         if not self.dealer.deck:
             self.replace_deck()
         if not self.dealer.deck:
-            self._advance()
+            self.is_over = True
+            self.winner = UnoJudger.judge_winner(players)
             return
 
         hand = players[self.current_player].hand
@@ -208,6 +210,10 @@ class UnoRound:
             num = DRAW_PENALTY[card.trait]
             if len(self.dealer.deck) < num:
                 self.replace_deck()
-            self.dealer.deal_cards(players[self._next_player()], min(num, len(self.dealer.deck)))
+            if len(self.dealer.deck) < num:
+                self.is_over = True
+                self.winner = UnoJudger.judge_winner(players)
+                return
+            self.dealer.deal_cards(players[self._next_player()], num)
             self._advance()
         self._advance()

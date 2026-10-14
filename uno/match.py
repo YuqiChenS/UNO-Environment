@@ -8,8 +8,8 @@ from .agents.human_agent import print_action
 def match(agents, seed=None, max_steps=10_000, verbose=False):
     ''' Play one game. agents[i] is player i, and each agent's step(state) returns a legal action.
 
-    Returns the winner (None if the game hit max_steps), the cards left in each hand,
-    and every move as (player_id, action).
+    Returns the winner (None if the game hit max_steps or ended in a tie), the cards left
+    in each hand, and every move as (player_id, action).
     '''
     game = UnoGame(num_players=len(agents))
     if seed is not None:
@@ -26,8 +26,12 @@ def match(agents, seed=None, max_steps=10_000, verbose=False):
             print_action(player_id, action)
         state, player_id = game.step(action)
 
+    winner = None
+    if game.is_over() and len(game.round.winner) == 1:
+        winner = game.round.winner[0]
+
     return {
-        'winner': game.round.winner[0] if game.is_over() else None,
+        'winner': winner,
         'num_cards': [len(player.hand) for player in game.players],
         'actions': actions,
     }
