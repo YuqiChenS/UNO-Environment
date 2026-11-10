@@ -8,10 +8,11 @@ from . import Round
 
 class UnoGame:
 
-    def __init__(self, allow_step_back=False, num_players=2):
+    def __init__(self, allow_step_back=False, num_players=2, house_rules=False):
         self.allow_step_back = allow_step_back
         self.np_random = np.random.RandomState()
         self.num_players = num_players
+        self.house_rules = house_rules
         self.payoffs = [0 for _ in range(self.num_players)]
 
     def configure(self, game_config):
@@ -32,7 +33,7 @@ class UnoGame:
         self.payoffs = [0 for _ in range(self.num_players)]
 
         # Initialize a dealer that can deal cards
-        self.dealer = Dealer(self.np_random)
+        self.dealer = Dealer(self.np_random, self.house_rules)
 
         # Initialize four players to play the game
         self.players = [Player(i, self.np_random) for i in range(self.num_players)]
@@ -141,7 +142,7 @@ class UnoGame:
         Returns:
             (int): The number of actions: 60 cards, draw and keep
         '''
-        return 62
+        return 78
 
     def get_player_id(self):
         ''' Return the current player's id

@@ -5,13 +5,13 @@ from .game import UnoGame
 from .agents.human_agent import print_action
 
 
-def match(agents, seed=None, max_steps=10_000, verbose=False):
+def match(agents, seed=None, max_steps=10_000, verbose=False, house_rules=False):
     ''' Play one game. agents[i] is player i, and each agent's step(state) returns a legal action.
 
     Returns the winner (None if the game hit max_steps or ended in a tie), the cards left
     in each hand, and every move as (player_id, action).
     '''
-    game = UnoGame(num_players=len(agents))
+    game = UnoGame(num_players=len(agents), house_rules=house_rules)
     if seed is not None:
         game.np_random = np.random.RandomState(seed)
     state, player_id = game.init_game()

@@ -55,6 +55,14 @@ class UnoCard:
                     trait = 'Wild'
                 elif trait == 'wild_draw_4':
                     trait = 'Wild-Draw-4'
+                elif trait == 'wild_shuffle':
+                    trait = 'Wild-Shuffle'
+                elif trait == 'wild_swap':
+                    trait = 'Wild-Swap'
+                elif trait == 'wild_discard':
+                    trait = 'Wild-Discard'
+                elif trait == 'wild_draw_until':
+                    trait = 'Wild-Draw-Until'
 
             if trait in ('Draw', 'Keep') or (trait[:4] == 'Wild' and not wild_color):
                 print(trait, end='')

@@ -1,13 +1,13 @@
 
-from .utils import init_deck
+from .utils import init_deck, HOUSE_WILD_TRAITS
 
 
 class UnoDealer:
     ''' Initialize a uno dealer class
     '''
-    def __init__(self, np_random):
+    def __init__(self, np_random, house_rules=False):
         self.np_random = np_random
-        self.deck = init_deck()
+        self.deck = init_deck(house_rules)
         self.shuffle()
 
     def shuffle(self):
@@ -32,7 +32,7 @@ class UnoDealer:
             (object): The object of UnoCard at the top of the deck
         '''
         top_card = self.deck.pop()
-        while top_card.trait == 'wild_draw_4':
+        while top_card.trait == 'wild_draw_4' or top_card.trait in HOUSE_WILD_TRAITS:
             self.deck.append(top_card)
             self.shuffle()
             top_card = self.deck.pop()

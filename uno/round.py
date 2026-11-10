@@ -1,7 +1,7 @@
 from .judger import UnoJudger
-from .utils import cards2list, WILD, WILD_DRAW_4
+from .utils import cards2list, WILD, WILD_DRAW_4, HOUSE_WILD_TRAITS
 
-WILD_TRAITS = ('wild', 'wild_draw_4')
+WILD_TRAITS = ['wild', 'wild_draw_4'] + HOUSE_WILD_TRAITS
 DRAW_PENALTY = {'draw_2': 2, 'wild_draw_4': 4}
 
 
@@ -146,16 +146,16 @@ class UnoRound:
         '''
         target = self.target
         actions = []
-        has_wild = False
         has_wild_draw_4 = False
         has_color_match = False
         for card in hand:
             if card.trait == 'wild_draw_4':
                 has_wild_draw_4 = True
-            elif card.trait == 'wild':
-                if not has_wild:
-                    has_wild = True
-                    actions.extend(WILD)
+            elif card.trait in WILD_TRAITS:
+                for color in ['r', 'g', 'b', 'y']:
+                    action = f'{color}-{card.trait}'
+                    if action not in actions:
+                        actions.append(action)
             elif card.color == target.color or card.trait == target.trait:
                 actions.append(card.str)
                 if card.color == target.color:
@@ -216,4 +216,52 @@ class UnoRound:
                 return
             self.dealer.deal_cards(players[self._next_player()], num)
             self._advance()
+        elif card.trait == 'wild_shuffle' and not self.is_over:
+            self._shuffle_hands(players)
+        elif card.trait == 'wild_swap' and not self.is_over:
+            player = players[self.current_player]
+            next_player = players[self._next_player()]
+            player.hand, next_player.hand = next_player.hand, player.hand
+        elif card.trait == 'wild_discard':
+            self._discard_color(players[self.current_player], card.color)
+        elif card.trait == 'wild_draw_until':
+            self._draw_until_color(players, card.color)
+            self._advance()
         self._advance()
+
+    def _shuffle_hands(self, players):
+        all_cards = []
+        for player in players:
+            all_cards.extend(player.hand)
+            player.hand = []
+        self.np_random.shuffle(all_cards)
+        player_id = self._next_player()
+        for card in all_cards:
+            players[player_id].hand.append(card)
+            player_id = (player_id + self.direction) % self.num_players
+
+    def _discard_color(self, player, color):
+        kept_cards = []
+        for card in player.hand:
+            if card.type != 'wild' and card.color == color:
+                self.played_cards.append(card)
+            else:
+                kept_cards.append(card)
+        player.hand = kept_cards
+        if not player.hand:
+            self.is_over = True
+            self.winner = [self.current_player]
+
+    def _draw_until_color(self, players, color):
+        hand = players[self._next_player()].hand
+        while True:
+            if not self.dealer.deck:
+                self.replace_deck()
+            if not self.dealer.deck:
+                self.is_over = True
+                self.winner = UnoJudger.judge_winner(players)
+                return
+            card = self.dealer.deck.pop()
+            hand.append(card)
+            if card.type != 'wild' and card.color == color:
+                return

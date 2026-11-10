@@ -26,8 +26,10 @@ WILD = ['r-wild', 'g-wild', 'b-wild', 'y-wild']
 
 WILD_DRAW_4 = ['r-wild_draw_4', 'g-wild_draw_4', 'b-wild_draw_4', 'y-wild_draw_4']
 
+HOUSE_WILD_TRAITS = ['wild_shuffle', 'wild_swap', 'wild_discard', 'wild_draw_until']
 
-def init_deck():
+
+def init_deck(house_rules=False):
     ''' Generate uno deck of 108 cards
     '''
     deck = []
@@ -48,6 +50,9 @@ def init_deck():
         # init wild cards
         for wild in card_info['trait'][-2:]:
             deck.append(Card('wild', color, wild))
+        if house_rules:
+            for wild in HOUSE_WILD_TRAITS:
+                deck.append(Card('wild', color, wild))
     return deck
 
 
