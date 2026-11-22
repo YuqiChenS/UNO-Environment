@@ -13,7 +13,7 @@ class UnoRandomAgent:
     def step(self, state):
         return self.rng.choice(state['legal_actions'])
 
-
+# RLCard old random Agent Incompatible
 class RandomAgent(object):
     ''' A random agent. Random agents is for running toy examples on the card games
     '''

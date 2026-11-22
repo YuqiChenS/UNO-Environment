@@ -140,7 +140,7 @@ class UnoGame:
         ''' Return the number of applicable actions
 
         Returns:
-            (int): The number of actions: 60 cards, draw and keep
+            (int): The number of actions: 78 cards, draw and keep
         '''
         return 78
 
