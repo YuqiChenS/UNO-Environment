@@ -5,3 +5,9 @@ Rule Based Agent,Random Agent,3,0.936,False
 Rule Based Agent,Random Agent,3,0.782,True
 Rule Based Agent,Random Agent,4,0.907,False
 Rule Based Agent,Random Agent,4,0.757,True
+Heuristic Agent,Rule Based Agent,2,0.485,False
+Heuristic Agent,Rule Based Agent,2,0.535,True
+Heuristic Agent,Rule Based Agent,3,0.286,False
+Heuristic Agent,Rule Based Agent,3,0.294,True
+Heuristic Agent,Rule Based Agent,4,0.213,False
+Heuristic Agent,Rule Based Agent,4,0.204,True
