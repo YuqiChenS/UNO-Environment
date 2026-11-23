@@ -4,3 +4,4 @@ RandomAgent is rlcard's, unchanged; it needs an rlcard-style env, so it can't pl
 from .human_agent import UnoHumanAgent
 from .random_agent import RandomAgent, UnoRandomAgent
 from .rule_based_agent import RuleBasedAgent
+from .heuristic_agent import HeuristicAgent

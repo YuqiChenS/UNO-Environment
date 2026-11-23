@@ -10,12 +10,12 @@ import csv
 import os
 
 from uno import Game, match
-from uno.agents import UnoHumanAgent, UnoRandomAgent, RuleBasedAgent
+from uno.agents import UnoHumanAgent, UnoRandomAgent, RuleBasedAgent, HeuristicAgent
 from uno.utils import ROOT_PATH
 
 PATH = os.path.join(ROOT_PATH, 'results', 'result.csv')
 NUM_GAMES = 1000
-AGENTS = {'random': UnoRandomAgent, 'rule': RuleBasedAgent}
+AGENTS = {'random': UnoRandomAgent, 'rule': RuleBasedAgent, 'heuristic': HeuristicAgent}
 
 
 def evaluate(eval_class, opponent_class):

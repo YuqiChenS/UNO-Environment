@@ -35,4 +35,3 @@ class RuleBasedAgent:
 
         if 'draw' in legal_actions:
             return 'draw'
-        return 'keep'

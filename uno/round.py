@@ -25,7 +25,7 @@ class UnoRound:
         self.winner = None
         self.drawn_card = None
         self.choosing_start_color = False
-        self.num_rounds = 0
+        self.num_turns = 0
 
     def flip_top_card(self):
         ''' Flip the top card of the card pile
@@ -63,7 +63,6 @@ class UnoRound:
             players (list): list of UnoPlayer objects
             action (str): string of legal action
         '''
-        self.num_rounds += 1
         if self.choosing_start_color: #choosing the starting color if top card is wild
             if action not in WILD:
                 raise ValueError('{} is not legal: choose a color for the starting wild'.format(action))
@@ -77,9 +76,12 @@ class UnoRound:
             self.drawn_card = None
             if action == 'keep': #drawn card, player chose 'keep'
                 self._advance()
+                self.num_turns += 1
                 return
         elif action == 'draw': #player chose 'draw'
             self._perform_draw_action(players)
+            if self.drawn_card is None:
+                self.num_turns += 1
             return
 
         player = players[self.current_player] # rest 
@@ -91,6 +93,7 @@ class UnoRound:
             self.is_over = True
             self.winner = [self.current_player]
         self._play_card(players, card)
+        self.num_turns += 1
 
     def get_legal_actions(self, players, player_id):
         ''' The playable cards in hand plus 'draw'. Right after drawing a playable card,
@@ -119,7 +122,7 @@ class UnoRound:
             'drawn_card': self.drawn_card.get_str() if self.drawn_card is not None else None,
             'choosing_start_color': self.choosing_start_color,
             'direction': self.direction,
-            'num_rounds': self.num_rounds
+            'num_rounds': self.num_turns // self.num_players + 1
         }
 
     def replace_deck(self):
