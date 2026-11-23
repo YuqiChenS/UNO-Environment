@@ -1,21 +1,55 @@
-''' Play UNO in the terminal against random agents.
+''' Play UNO in the terminal against random or rule based agents,
+or play 1000 games between agents.
 
   python play.py                 # you vs 1 opponent
-  python play.py --players 4
+  python play.py --players 4 --opponent rule
+  python play.py --eval rule --opponent random
 '''
 import argparse
+import csv
+import os
 
 from uno import Game, match
-from uno.agents import UnoHumanAgent, UnoRandomAgent
+from uno.agents import UnoHumanAgent, UnoRandomAgent, RuleBasedAgent
+from uno.utils import ROOT_PATH
+
+PATH = os.path.join(ROOT_PATH, 'results', 'result.csv')
+NUM_GAMES = 1000
+AGENTS = {'random': UnoRandomAgent, 'rule': RuleBasedAgent}
+
+
+def evaluate(eval_class, opponent_class):
+    for num_players in (2, 3, 4):
+        for rules in (False, True):
+            wins = 0
+            for seed in range(NUM_GAMES):
+                eval_player_id = seed % num_players
+                agents = [opponent_class(seed * 10 + i) for i in range(num_players)]
+                agents[eval_player_id] = eval_class(seed)
+                result = match(agents, seed=seed, house_rules=rules)
+                if result['winner'] == eval_player_id:
+                    wins += 1
+
+            win_pct = round(wins / NUM_GAMES, 3)
+            with open(PATH, 'a', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow([eval_class().name, opponent_class().name, num_players, win_pct, rules])
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--players', type=int, default=2, choices=[2, 3, 4])
     parser.add_argument('--house-rules', action='store_true', help='add Wild Shuffle, Swap, Discard and Draw Until cards')
+    parser.add_argument('--opponent', default='random', choices=list(AGENTS), help='the agent type of every opponent')
+    parser.add_argument('--eval', choices=list(AGENTS), help='play 1000 games for each player count and rule set')
     args = parser.parse_args()
+    opponent_class = AGENTS[args.opponent]
 
-    agents = [UnoHumanAgent(Game.get_num_actions())] + [UnoRandomAgent() for _ in range(args.players - 1)]
+    if args.eval:
+        evaluate(AGENTS[args.eval], opponent_class)
+        return
+
+    agents = [UnoHumanAgent(Game.get_num_actions())] + [opponent_class() for _ in range(args.players - 1)]
     try:
         while True:
             print('\nYou are player 0.')

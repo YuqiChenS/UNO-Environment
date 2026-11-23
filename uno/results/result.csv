@@ -1,0 +1,7 @@
+self_agent,opponent_agent,num_agents,win_pct,house_rule
+Rule Based Agent,Random Agent,2,0.952,False
+Rule Based Agent,Random Agent,2,0.818,True
+Rule Based Agent,Random Agent,3,0.936,False
+Rule Based Agent,Random Agent,3,0.782,True
+Rule Based Agent,Random Agent,4,0.907,False
+Rule Based Agent,Random Agent,4,0.757,True
