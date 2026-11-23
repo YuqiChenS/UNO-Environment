@@ -14,6 +14,7 @@ class UnoGame:
         self.num_players = num_players
         self.house_rules = house_rules
         self.payoffs = [0 for _ in range(self.num_players)]
+        self.num_round = 0
 
     def configure(self, game_config):
         ''' Specifiy some game specific parameters, such as number of players

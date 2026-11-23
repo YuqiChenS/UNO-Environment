@@ -25,6 +25,7 @@ class UnoRound:
         self.winner = None
         self.drawn_card = None
         self.choosing_start_color = False
+        self.num_rounds = 0
 
     def flip_top_card(self):
         ''' Flip the top card of the card pile
@@ -62,6 +63,7 @@ class UnoRound:
             players (list): list of UnoPlayer objects
             action (str): string of legal action
         '''
+        self.num_rounds += 1
         if self.choosing_start_color: #choosing the starting color if top card is wild
             if action not in WILD:
                 raise ValueError('{} is not legal: choose a color for the starting wild'.format(action))
@@ -116,7 +118,8 @@ class UnoRound:
             'num_cards': [len(player.hand) for player in players],
             'drawn_card': self.drawn_card.get_str() if self.drawn_card is not None else None,
             'choosing_start_color': self.choosing_start_color,
-            'direction': self.direction
+            'direction': self.direction,
+            'num_rounds': self.num_rounds
         }
 
     def replace_deck(self):
