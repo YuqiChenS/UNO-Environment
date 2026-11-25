@@ -11,3 +11,10 @@ Heuristic Agent,Rule Based Agent,3,0.286,False
 Heuristic Agent,Rule Based Agent,3,0.294,True
 Heuristic Agent,Rule Based Agent,4,0.213,False
 Heuristic Agent,Rule Based Agent,4,0.204,True
+
+Heuristic Agent v2,Rule Based Agent,2,0.479,False
+Heuristic Agent v2,Rule Based Agent,2,0.499,True
+Heuristic Agent v2,Rule Based Agent,3,0.297,False
+Heuristic Agent v2,Rule Based Agent,3,0.317,True
+Heuristic Agent v2,Rule Based Agent,4,0.205,False
+Heuristic Agent v2,Rule Based Agent,4,0.231,True

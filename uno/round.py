@@ -122,7 +122,8 @@ class UnoRound:
             'drawn_card': self.drawn_card.get_str() if self.drawn_card is not None else None,
             'choosing_start_color': self.choosing_start_color,
             'direction': self.direction,
-            'num_rounds': self.num_turns // self.num_players + 1
+            'num_rounds': self.num_turns // self.num_players + 1,
+            'num_turns': self.num_turns
         }
 
     def replace_deck(self):

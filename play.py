@@ -18,7 +18,7 @@ NUM_GAMES = 1000
 AGENTS = {'random': UnoRandomAgent, 'rule': RuleBasedAgent, 'heuristic': HeuristicAgent}
 
 
-def evaluate(eval_class, opponent_class):
+def evaluate(eval_class, opponent_class, log):
     for num_players in (2, 3, 4):
         for rules in (False, True):
             wins = 0
@@ -26,14 +26,20 @@ def evaluate(eval_class, opponent_class):
                 eval_player_id = seed % num_players
                 agents = [opponent_class(seed * 10 + i) for i in range(num_players)]
                 agents[eval_player_id] = eval_class(seed)
+                if eval_class is HeuristicAgent and seed % 100 == 0:
+                    agents[eval_player_id] = eval_class(seed, log_flag=True)
                 result = match(agents, seed=seed, house_rules=rules)
                 if result['winner'] == eval_player_id:
                     wins += 1
 
             win_pct = round(wins / NUM_GAMES, 3)
-            with open(PATH, 'a', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow([eval_class().name, opponent_class().name, num_players, win_pct, rules])
+            if log:
+                is_new_file = not os.path.exists(PATH)
+                with open(PATH, 'a', newline='') as f:
+                    writer = csv.writer(f)
+                    if is_new_file:
+                        writer.writerow(['self_agent', 'opponent_agent', 'num_agents', 'win_pct', 'house_rule'])
+                    writer.writerow([eval_class().name, opponent_class().name, num_players, win_pct, rules])
 
 
 def main():
@@ -42,11 +48,12 @@ def main():
     parser.add_argument('--house-rules', action='store_true', help='add Wild Shuffle, Swap, Discard and Draw Until cards')
     parser.add_argument('--opponent', default='random', choices=list(AGENTS), help='the agent type of every opponent')
     parser.add_argument('--eval', choices=list(AGENTS), help='play 1000 games for each player count and rule set')
+    parser.add_argument('--log', action='store_true')
     args = parser.parse_args()
     opponent_class = AGENTS[args.opponent]
 
     if args.eval:
-        evaluate(AGENTS[args.eval], opponent_class)
+        evaluate(AGENTS[args.eval], opponent_class, args.log)
         return
 
     agents = [UnoHumanAgent(Game.get_num_actions())] + [opponent_class() for _ in range(args.players - 1)]
