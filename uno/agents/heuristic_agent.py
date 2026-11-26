@@ -9,7 +9,7 @@ import os
 from uno.utils import ROOT_PATH
 
 ATTACK_TRAITS = ('skip', 'reverse', 'draw_2', 'wild_draw_4', 'wild_shuffle', 'wild_swap', 'wild_draw_until')
-PATH = os.path.join(ROOT_PATH, 'results', 'heuristics.csv')
+PATH = os.path.join(ROOT_PATH, 'results', 'heuristics_v3.csv')
 
 def is_attack_trait(trait, num_players):
     if trait == 'reverse' and num_players > 2:
@@ -21,7 +21,7 @@ class HeuristicAgent:
 
     def __init__(self, seed=None, log_flag=False):
         self.rng = random.Random(seed)
-        self.name = "Heuristic Agent v2"
+        self.name = "Heuristic Agent v3"
         self.log = log_flag
 
     def step(self, state):
@@ -50,7 +50,6 @@ class HeuristicAgent:
     def score(self, action, state, hand_color_counts, opp_hand_size, len_normal_actions):
         hand_size = len(state['hand'])
         num_players = state['num_players']
-        num_rounds = state['num_rounds']
         is_draw = 1 if action == 'draw' else 0
         is_keep = 1 if action == 'keep' else 0
 
@@ -96,8 +95,8 @@ class HeuristicAgent:
                 attack_danger = played_count[action_color]
         
 
-            is_special = 1 if is_attack or 'wild' in action_trait else 0
-            special_card_cost = -is_special / num_rounds
+            is_wild = 1 if 'wild' in action_trait else 0
+            special_card_cost = - len_normal_actions * is_wild
 
         draw_value = (1 / (len_normal_actions + 1)) * is_draw
 
